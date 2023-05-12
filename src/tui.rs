@@ -1,6 +1,7 @@
-use crate::app::{App, Result};
+use crate::app::App;
 use crate::event::EventHandler;
 use crate::ui;
+use anyhow::Result;
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use std::io;

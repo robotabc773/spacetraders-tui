@@ -1,4 +1,5 @@
-use spacetraders_tui::app::{App, Result};
+use anyhow::Result;
+use spacetraders_tui::app::App;
 use spacetraders_tui::event::{Event, EventHandler};
 use spacetraders_tui::handler::handle_key_events;
 use spacetraders_tui::tui::Tui;
