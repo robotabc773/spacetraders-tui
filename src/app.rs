@@ -1,7 +1,7 @@
 use std::error;
 
 /// Application result type.
-pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
+pub type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 /// Application.
 #[derive(Debug)]
@@ -23,6 +23,7 @@ impl Default for App {
 
 impl App {
     /// Constructs a new instance of [`App`].
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }

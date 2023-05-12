@@ -32,5 +32,5 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
         .style(Style::default().fg(Color::Cyan).bg(Color::Black))
         .alignment(Alignment::Center),
         frame.size(),
-    )
+    );
 }

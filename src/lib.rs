@@ -12,3 +12,5 @@ pub mod tui;
 
 /// Event handler.
 pub mod handler;
+
+pub mod rate_limit;

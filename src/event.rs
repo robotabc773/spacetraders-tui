@@ -1,4 +1,4 @@
-use crate::app::AppResult;
+use crate::app::Result;
 use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
 use std::sync::mpsc;
 use std::thread;
@@ -18,7 +18,7 @@ pub enum Event {
 }
 
 /// Terminal event handler.
-#[allow(dead_code)]
+#[allow(dead_code, clippy::module_name_repetitions)]
 #[derive(Debug)]
 pub struct EventHandler {
     /// Event sender channel.
@@ -31,6 +31,8 @@ pub struct EventHandler {
 
 impl EventHandler {
     /// Constructs a new instance of [`EventHandler`].
+    #[must_use]
+    #[allow(clippy::expect_used)]
     pub fn new(tick_rate: u64) -> Self {
         let tick_rate = Duration::from_millis(tick_rate);
         let (sender, receiver) = mpsc::channel();
@@ -50,7 +52,7 @@ impl EventHandler {
                             CrosstermEvent::Resize(w, h) => sender.send(Event::Resize(w, h)),
                             _ => unimplemented!(),
                         }
-                        .expect("failed to send terminal event")
+                        .expect("failed to send terminal event");
                     }
 
                     if last_tick.elapsed() >= tick_rate {
@@ -71,7 +73,10 @@ impl EventHandler {
     ///
     /// This function will always block the current thread if
     /// there is no data available and it's possible for more data to be sent.
-    pub fn next(&self) -> AppResult<Event> {
+    ///
+    /// # Errors
+    /// Returns `Err` if receiver is closed
+    pub fn next(&self) -> Result<Event> {
         Ok(self.receiver.recv()?)
     }
 }

@@ -1,12 +1,12 @@
-use std::io;
-use tui::backend::CrosstermBackend;
-use tui::Terminal;
-use spacetraders_tui::app::{App, AppResult};
+use spacetraders_tui::app::{App, Result};
 use spacetraders_tui::event::{Event, EventHandler};
 use spacetraders_tui::handler::handle_key_events;
 use spacetraders_tui::tui::Tui;
+use std::io;
+use tui::backend::CrosstermBackend;
+use tui::Terminal;
 
-fn main() -> AppResult<()> {
+fn main() -> Result<()> {
     // Create an application.
     let mut app = App::new();
 
@@ -25,8 +25,9 @@ fn main() -> AppResult<()> {
         match tui.events.next()? {
             Event::Tick => app.tick(),
             Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
-            Event::Mouse(_) => {}
-            Event::Resize(_, _) => {}
+            // Event::Mouse(_) => {}
+            // Event::Resize(_, _) => {}
+            _ => {}
         }
     }
 
