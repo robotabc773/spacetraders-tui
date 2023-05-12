@@ -1,0 +1,10 @@
+[package]
+name = "spacetraders-tui"
+version = "0.1.0"
+authors = ["robotabc773 <sebastianxwu@gmail.com>"]
+license = "MIT"
+edition = "2021"
+
+[dependencies]
+crossterm = "0.26.1"
+tui = { package = "ratatui", version = "0.20.1" }
