@@ -1,4 +1,7 @@
-use crate::app::App;
+use crate::{
+    app::{App, Tab},
+    st_util::refresh_agent_page,
+};
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -18,15 +21,27 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> Result<()> {
                 app.quit();
             }
         }
-        // Counter handlers
-        KeyCode::Right => {
-            app.increment_counter();
+        // Tab-switching
+        KeyCode::Char('a' | 'A') => {
+            app.set_tab(Tab::Agent);
         }
-        KeyCode::Left => {
-            app.decrement_counter();
+        KeyCode::Char('s' | 'S') => {
+            app.set_tab(Tab::Systems);
         }
-        // Other handlers you could add here.
-        _ => {}
+        KeyCode::Char('f' | 'F') => {
+            app.set_tab(Tab::Fleet);
+        }
+        // Tab-specific behavior
+        key => match app.tab {
+            Tab::Agent => match key {
+                KeyCode::Char('r' | 'R') => {
+                    tokio::spawn(refresh_agent_page());
+                }
+                _ => {}
+            },
+            Tab::Systems => {}
+            Tab::Fleet => {}
+        },
     }
     Ok(())
 }

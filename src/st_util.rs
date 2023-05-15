@@ -1,5 +1,7 @@
+use anyhow::Result;
 use spacedust::{
     apis::{
+        agents_api::get_my_agent,
         contracts_api::{get_contracts, GetContractsError},
         factions_api::{get_factions, GetFactionsError},
         fleet_api::{get_my_ships, GetMyShipsError},
@@ -10,7 +12,7 @@ use spacedust::{
     models::{Contract, Faction, Ship, System, Waypoint},
 };
 
-use crate::config::CONFIGURATION;
+use crate::config::{get_global_db_pool, CONFIGURATION};
 
 const MAX_PAGE_SIZE: i32 = 20;
 
@@ -52,7 +54,6 @@ impl_list!(
         system_symbol: &str,
     ) -> Result<Vec<Waypoint>, Error<GetSystemWaypointsError>>
 );
-
 impl_list!(
     /// Get a list of all known factions
     ///
@@ -60,7 +61,6 @@ impl_list!(
     /// Propogates any error from `get_factions`
     get_factions => pub async fn list_factions() -> Result<Vec<Faction>, Error<GetFactionsError>>
 );
-
 impl_list!(
     /// Get a list of all your contracts
     ///
@@ -68,7 +68,6 @@ impl_list!(
     /// Propogates any error from `get_contracts`
     get_contracts => pub async fn list_contracts() -> Result<Vec<Contract>, Error<GetContractsError>>
 );
-
 impl_list!(
     /// Get a list of all your ships
     ///
@@ -76,7 +75,6 @@ impl_list!(
     /// Propogates any error from `get_ships`
     get_my_ships => pub async fn list_ships() -> Result<Vec<Ship>, Error<GetMyShipsError>>
 );
-
 impl_list!(
     /// Get a list of all known systems
     ///
@@ -84,3 +82,29 @@ impl_list!(
     /// Propogates any error from `get_systems`
     get_systems => pub async fn list_systems() -> Result<Vec<System>, Error<GetSystemsError>>
 );
+
+/// Updates information on the agent page from SpaceTraders API
+///
+/// # Errors
+/// Errors on request failure or database failure
+///
+/// # Panics
+/// Pretty sure it won't, but the compiler thinks it might
+pub async fn refresh_agent_page() -> Result<()> {
+    let agent = get_my_agent(&CONFIGURATION).await?.data;
+
+    sqlx::query!(
+        "INSERT INTO agents(account_id, symbol, headquarters, credits)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (symbol) DO 
+                UPDATE SET credits = EXCLUDED.credits",
+        agent.account_id,
+        agent.symbol,
+        agent.symbol,
+        agent.credits
+    )
+    .execute(get_global_db_pool().await)
+    .await?;
+
+    Ok(())
+}

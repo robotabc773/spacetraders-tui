@@ -14,5 +14,6 @@ pub mod tui;
 pub mod handler;
 
 pub mod config;
+pub mod db_util;
 pub mod rate_limit;
 pub mod st_util;

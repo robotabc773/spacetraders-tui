@@ -1,7 +1,6 @@
 use anyhow::Result;
 use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
 use std::sync::mpsc;
-use std::thread;
 use std::time::{Duration, Instant};
 
 /// Terminal events.
@@ -18,7 +17,7 @@ pub enum Event {
 }
 
 /// Terminal event handler.
-#[allow(dead_code, clippy::module_name_repetitions)]
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug)]
 pub struct EventHandler {
     /// Event sender channel.
@@ -26,7 +25,7 @@ pub struct EventHandler {
     /// Event receiver channel.
     receiver: mpsc::Receiver<Event>,
     /// Event handler thread.
-    handler: thread::JoinHandle<()>,
+    handler: tokio::task::JoinHandle<()>,
 }
 
 impl EventHandler {
@@ -38,7 +37,7 @@ impl EventHandler {
         let (sender, receiver) = mpsc::channel();
         let handler = {
             let sender = sender.clone();
-            thread::spawn(move || {
+            tokio::spawn(async move {
                 let mut last_tick = Instant::now();
                 loop {
                     let timeout = tick_rate
@@ -56,7 +55,9 @@ impl EventHandler {
                     }
 
                     if last_tick.elapsed() >= tick_rate {
-                        sender.send(Event::Tick).expect("failed to send tick event");
+                        if sender.send(Event::Tick).is_err() {
+                            break;
+                        };
                         last_tick = Instant::now();
                     }
                 }

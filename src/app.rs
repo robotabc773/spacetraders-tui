@@ -1,17 +1,26 @@
+use strum::{Display, EnumCount, EnumIter};
+
 /// Application.
 #[derive(Debug)]
 pub struct App {
     /// Is the application running?
     pub running: bool,
-    /// counter
-    pub counter: u8,
+    /// current main tab
+    pub tab: Tab,
+}
+
+#[derive(Debug, EnumIter, Display, EnumCount, PartialEq, Eq)]
+pub enum Tab {
+    Agent,
+    Systems,
+    Fleet,
 }
 
 impl Default for App {
     fn default() -> Self {
         Self {
             running: true,
-            counter: 0,
+            tab: Tab::Agent,
         }
     }
 }
@@ -31,15 +40,7 @@ impl App {
         self.running = false;
     }
 
-    pub fn increment_counter(&mut self) {
-        if let Some(res) = self.counter.checked_add(1) {
-            self.counter = res;
-        }
-    }
-
-    pub fn decrement_counter(&mut self) {
-        if let Some(res) = self.counter.checked_sub(1) {
-            self.counter = res;
-        }
+    pub fn set_tab(&mut self, tab: Tab) {
+        self.tab = tab;
     }
 }

@@ -1,13 +1,21 @@
 use anyhow::Result;
 use spacetraders_tui::app::App;
+use spacetraders_tui::db_util;
 use spacetraders_tui::event::{Event, EventHandler};
 use spacetraders_tui::handler::handle_key_events;
+use spacetraders_tui::st_util;
 use spacetraders_tui::tui::Tui;
 use std::io;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Setup database stuff
+    dotenvy::dotenv()?;
+    db_util::setup_database().await;
+    st_util::refresh_agent_page().await?;
+
     // Create an application.
     let mut app = App::new();
 
