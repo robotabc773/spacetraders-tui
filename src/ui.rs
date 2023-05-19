@@ -1,4 +1,5 @@
 use once_cell::sync::Lazy;
+use spacedust::models::Contract;
 use strum::IntoEnumIterator;
 use tui::{
     backend::Backend,
@@ -65,7 +66,10 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
     // -------------------------------------------------------
     //                       Main Tabs
     // -------------------------------------------------------
-    let tab_strs: Vec<String> = Tab::iter().map(|x| x.to_string()).collect();
+    let tab_strs: Vec<String> = Tab::iter()
+        .enumerate()
+        .map(|(i, x)| format!("{}. {x}", i + 1))
+        .collect();
     let tabs = tab_strs
         .iter()
         .map(|t| {
@@ -119,14 +123,14 @@ fn render_agent_tab<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, chunk: 
 fn render_agent_block<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, chunk: Rect) {
     let agent = &app.state.agent;
 
-    let agent_info = Paragraph::new(vec![
+    let info = Paragraph::new(vec![
         key_value!("Symbol", &agent.symbol),
         key_value!("Headquarters", &agent.headquarters),
         key_value!("Credits", agent.credits.to_string()),
     ])
     .block(BASE_BLOCK.clone().title("Me"));
 
-    frame.render_widget(agent_info, chunk);
+    frame.render_widget(info, chunk);
 }
 
 fn render_contracts_block<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, chunk: Rect) {
@@ -137,86 +141,115 @@ fn render_contracts_block<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, c
         .iter()
         .fold(10, |id_max, c| id_max.max(c.id.len() as u16));
 
-    let contracts_info_chunks = Layout::default()
+    let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Max(id_max_length), Constraint::Min(30)].as_ref())
         .margin(1)
         .split(chunk);
 
-    let contracts_block = BASE_BLOCK.clone().title("Contracts");
-    frame.render_widget(contracts_block, chunk);
+    let border = BASE_BLOCK.clone().title("Contracts");
+    frame.render_widget(border, chunk);
 
-    let contracts_list_items: Vec<ListItem> = contracts
+    let list_items: Vec<ListItem> = contracts
         .iter()
         .map(|c| ListItem::new(c.id.clone()))
         .collect();
-    let contracts_list = List::new(contracts_list_items)
+    let list = List::new(list_items)
         .style(*LIST_STYLE)
         .highlight_style(*LIST_SELECTED_STYLE)
         .repeat_highlight_symbol(true)
         .block(BASE_BLOCK.clone().borders(Borders::RIGHT));
 
-    frame.render_stateful_widget(
-        contracts_list,
-        contracts_info_chunks[0],
-        &mut app.state.contracts_list_state,
-    );
+    frame.render_stateful_widget(list, chunks[0], &mut app.state.contracts_list_state);
 
     if let Some(index) = app.state.contracts_list_state.selected() {
-        let selected_contract = &contracts[index];
+        render_contract(frame, chunks[1], &contracts[index]);
+    }
+}
 
-        let contract_details_chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(8), Constraint::Percentage(100)].as_ref())
-            .split(contracts_info_chunks[1]);
+fn render_contract<B: Backend>(
+    frame: &mut Frame<'_, B>,
+    chunk: Rect,
+    selected_contract: &Contract,
+) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Length(2),
+                Constraint::Length(8),
+                Constraint::Percentage(100),
+            ]
+            .as_ref(),
+        )
+        .split(chunk);
 
-        let contract_details = Paragraph::new(vec![
-            key_value!("Faction", &selected_contract.faction_symbol),
-            key_value!(
-                "Type",
-                st_util::contract_type_to_string(&selected_contract.r#type)
-            ),
-            key_value!("Accepted", selected_contract.accepted.to_string()),
-            key_value!("Fulfilled", selected_contract.fulfilled.to_string()),
-            key_value!("Deadline", &selected_contract.terms.deadline),
-            key_value!("Expiration", &selected_contract.expiration),
-            key_value!(
-                "Initial Payment",
-                selected_contract.terms.payment.on_accepted.to_string()
-            ),
-            key_value!(
-                "Fulfillment Payment",
-                selected_contract.terms.payment.on_fulfilled.to_string()
-            ),
-        ]);
-
-        if let Some(delivers) = &selected_contract.terms.deliver {
-            let contract_deliver_rows = delivers.iter().map(|d| {
-                Row::new(vec![
-                    d.trade_symbol.clone(),
-                    d.destination_symbol.clone(),
-                    d.units_required.to_string(),
-                    d.units_fulfilled.to_string(),
-                ])
-                .style(*BASE_STYLE)
-            });
-            let contract_deliver = Table::new(contract_deliver_rows)
-                .header(
-                    Row::new(vec![
-                        "Good",
-                        "Destination",
-                        "Units Required",
-                        "Units Fulfilled",
-                    ])
-                    .style(*HEADER_STYLE),
-                )
-                .widths([Constraint::Percentage(25); 25].as_ref())
-                .column_spacing(2)
-                .block(BASE_BLOCK.clone().borders(Borders::TOP));
-            frame.render_widget(contract_deliver, contract_details_chunks[1]);
+    let action = if !selected_contract.accepted {
+        Span::styled("Accept", *VALUE_STYLE)
+    } else if let Some(delivers) = &selected_contract.terms.deliver {
+        if delivers
+            .iter()
+            .all(|d| d.units_fulfilled >= d.units_required)
+        {
+            Span::styled("Fulfil", *VALUE_STYLE)
+        } else {
+            Span::styled("None", VALUE_STYLE.fg(Color::DarkGray))
         }
+    } else {
+        Span::styled("None", VALUE_STYLE.fg(Color::DarkGray))
+    };
+    let controls = Paragraph::new(Spans::from(vec![
+        Span::styled("Enter: ", *KEY_STYLE),
+        action,
+    ]))
+    .block(BASE_BLOCK.clone().borders(Borders::BOTTOM));
+    frame.render_widget(controls, chunks[0]);
 
-        frame.render_widget(contract_details, contract_details_chunks[0]);
+    let details = Paragraph::new(vec![
+        key_value!("Faction", &selected_contract.faction_symbol),
+        key_value!(
+            "Type",
+            st_util::contract_type_to_string(&selected_contract.r#type)
+        ),
+        key_value!("Accepted", selected_contract.accepted.to_string()),
+        key_value!("Fulfilled", selected_contract.fulfilled.to_string()),
+        key_value!("Deadline", &selected_contract.terms.deadline),
+        key_value!("Expiration", &selected_contract.expiration),
+        key_value!(
+            "Initial Payment",
+            selected_contract.terms.payment.on_accepted.to_string()
+        ),
+        key_value!(
+            "Fulfillment Payment",
+            selected_contract.terms.payment.on_fulfilled.to_string()
+        ),
+    ]);
+    frame.render_widget(details, chunks[1]);
+
+    if let Some(delivers) = &selected_contract.terms.deliver {
+        let deliver_rows = delivers.iter().map(|d| {
+            Row::new(vec![
+                d.trade_symbol.clone(),
+                d.destination_symbol.clone(),
+                d.units_required.to_string(),
+                d.units_fulfilled.to_string(),
+            ])
+            .style(*BASE_STYLE)
+        });
+        let deliver_table = Table::new(deliver_rows)
+            .header(
+                Row::new(vec![
+                    "Good",
+                    "Destination",
+                    "Units Required",
+                    "Units Fulfilled",
+                ])
+                .style(*HEADER_STYLE),
+            )
+            .widths([Constraint::Percentage(25); 25].as_ref())
+            .column_spacing(2)
+            .block(BASE_BLOCK.clone().borders(Borders::TOP));
+        frame.render_widget(deliver_table, chunks[2]);
     }
 }
 
@@ -241,7 +274,7 @@ fn render_factions_block<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, ch
             },
         );
 
-    let factions_info_rows = factions.iter().map(|f| {
+    let rows = factions.iter().map(|f| {
         Row::new(vec![
             f.symbol.clone(),
             f.name.clone(),
@@ -250,22 +283,22 @@ fn render_factions_block<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, ch
         ])
         .style(*BASE_STYLE)
     });
-    let factions_info_widths = [
+    let table_widths = [
         Constraint::Length(symbol_max_length),
         Constraint::Length(name_max_length),
         Constraint::Length(headquarters_max_length),
         Constraint::Percentage(100),
     ];
 
-    let factions_info = Table::new(factions_info_rows)
+    let table = Table::new(rows)
         .header(
             Row::new(vec!["Symbol", "Name", "Headquarters", "Description"]).style(*HEADER_STYLE),
         )
-        .widths(factions_info_widths.as_ref())
+        .widths(table_widths.as_ref())
         .column_spacing(2)
         .block(BASE_BLOCK.clone().title("Factions"));
 
-    frame.render_widget(factions_info, chunk);
+    frame.render_widget(table, chunk);
 }
 
 fn render_systems_tab<B: Backend>(_app: &mut App, _frame: &mut Frame<'_, B>, _chunk: Rect) {}

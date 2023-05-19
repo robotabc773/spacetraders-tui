@@ -20,22 +20,20 @@ impl IoHandler {
     /// Handles a given [`IoEvent`] with the appropriate function
     ///
     /// # Errors
-    /// Passes along any errors from the chosen function
+    /// Errors if the corresponding request fails
     pub async fn handle_io_event(&mut self, io_event: IoEvent) -> Result<()> {
         match io_event {
             IoEvent::UpdateAgent => self.update_agent().await?,
             IoEvent::UpdateContracts => self.update_contracts().await?,
             IoEvent::UpdateFactions => self.update_factions().await?,
+            IoEvent::AcceptContract(id) => self.accept_contract(&id).await?,
+            IoEvent::FulfillContract(id) => self.fulfill_contract(&id).await?,
         }
 
         Ok(())
     }
 
-    /// Updates information on the current agent from SpaceTraders API
-    ///
-    /// # Errors
-    /// Errors on request failure
-    pub async fn update_agent(&mut self) -> Result<()> {
+    async fn update_agent(&mut self) -> Result<()> {
         let agent = get_my_agent(&CONFIGURATION).await?.data;
 
         let mut app = self.app.lock().await;
@@ -57,28 +55,37 @@ impl IoHandler {
         Ok(())
     }
 
-    /// Updates information on the current contracts from the SpaceTraders API
-    ///
-    /// # Errors
-    /// Errors on request failure
-    pub async fn update_contracts(&mut self) -> Result<()> {
+    async fn update_contracts(&mut self) -> Result<()> {
         let contracts = st_util::list_contracts().await?;
 
         let mut app = self.app.lock().await;
+        if contracts.is_empty() {
+            app.state.contracts_list_state.select(None);
+        } else {
+            app.state.contracts_list_state.select(Some(0));
+        }
         app.state.contracts = contracts;
 
         Ok(())
     }
 
-    /// Updates information on the current factions from the SpaceTraders API
-    ///
-    /// # Errors
-    /// Errors on request failure
-    pub async fn update_factions(&mut self) -> Result<()> {
+    async fn update_factions(&mut self) -> Result<()> {
         let factions = st_util::list_factions().await?;
 
         let mut app = self.app.lock().await;
         app.state.factions = factions;
+
+        Ok(())
+    }
+
+    async fn accept_contract(&mut self, id: &str) -> Result<()> {
+        spacedust::apis::contracts_api::accept_contract(&CONFIGURATION, id, 0).await?;
+
+        Ok(())
+    }
+
+    async fn fulfill_contract(&mut self, id: &str) -> Result<()> {
+        spacedust::apis::contracts_api::fulfill_contract(&CONFIGURATION, id, 0).await?;
 
         Ok(())
     }

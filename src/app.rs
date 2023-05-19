@@ -1,4 +1,4 @@
-use log::{error, warn};
+use log::error;
 use spacedust::models::{Agent, Contract, Faction};
 use strum::{Display, EnumCount, EnumIter};
 use tokio::sync::mpsc;
@@ -70,6 +70,24 @@ impl App {
         self.dispatch(IoEvent::UpdateAgent).await;
         self.dispatch(IoEvent::UpdateContracts).await;
         self.dispatch(IoEvent::UpdateFactions).await;
+    }
+
+    pub async fn accept_or_fulfull_contract(&mut self) {
+        if let Some(index) = self.state.contracts_list_state.selected() {
+            let contract = &self.state.contracts[index];
+            if !contract.accepted {
+                self.dispatch(IoEvent::AcceptContract(contract.id.clone()))
+                    .await;
+            } else if let Some(delivers) = &contract.terms.deliver {
+                if delivers
+                    .iter()
+                    .all(|d| d.units_fulfilled >= d.units_required)
+                {
+                    self.dispatch(IoEvent::AcceptContract(contract.id.clone()))
+                        .await;
+                }
+            }
+        }
     }
 
     fn list_move(&mut self, delta: i32) {

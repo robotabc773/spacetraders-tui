@@ -19,9 +19,9 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> Result<()>
             }
         }
         // Tab-switching
-        KeyCode::Char('a' | 'A') => app.state.tab = Tab::Agent,
-        KeyCode::Char('s' | 'S') => app.state.tab = Tab::Systems,
-        KeyCode::Char('f' | 'F') => app.state.tab = Tab::Fleet,
+        KeyCode::Char('1') => app.state.tab = Tab::Agent,
+        KeyCode::Char('2') => app.state.tab = Tab::Systems,
+        KeyCode::Char('3') => app.state.tab = Tab::Fleet,
         // List navigation
         KeyCode::Up => app.list_prev(),
         KeyCode::Down => app.list_next(),
@@ -30,6 +30,9 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> Result<()>
             Tab::Agent => match key {
                 KeyCode::Char('r' | 'R') => {
                     app.update_agent_tab().await;
+                }
+                KeyCode::Enter => {
+                    app.accept_or_fulfull_contract().await;
                 }
                 _ => {}
             },
