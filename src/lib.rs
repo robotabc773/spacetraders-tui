@@ -1,17 +1,17 @@
 /// Application.
 pub mod app;
 
-/// Terminal events handler.
-pub mod event;
-
 /// Widget renderer.
 pub mod ui;
 
 /// Terminal user interface.
 pub mod tui;
 
-/// Event handler.
-pub mod handler;
+/// Terminal input handler.
+pub mod input;
+
+/// External IO handler.
+pub mod io;
 
 pub mod config;
 pub mod db_util;

@@ -1,7 +1,4 @@
-use crate::{
-    app::{App, Tab},
-    st_util::refresh_agent_page,
-};
+use crate::app::{App, Tab};
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -32,11 +29,9 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> Result<()> {
             app.set_tab(Tab::Fleet);
         }
         // Tab-specific behavior
-        key => match app.tab {
+        key => match app.state().tab {
             Tab::Agent => match key {
-                KeyCode::Char('r' | 'R') => {
-                    tokio::spawn(refresh_agent_page());
-                }
+                KeyCode::Char('r' | 'R') => {}
                 _ => {}
             },
             Tab::Systems => {}

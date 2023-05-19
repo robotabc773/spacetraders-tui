@@ -15,7 +15,7 @@ use crate::{
 };
 
 /// Renders the user interface widgets.
-pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
+pub fn render<B: Backend>(app: &App, frame: &mut Frame<'_, B>) {
     // -------------------------------------------------------
     //                   Overall Layout
     // -------------------------------------------------------
@@ -54,7 +54,7 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
 
     frame.render_widget(
         Tabs::new(tabs)
-            .select(Tab::iter().position(|x| x == app.tab).unwrap_or(0))
+            .select(Tab::iter().position(|x| x == app.state().tab).unwrap_or(0))
             .block(Block::default().title("Menu").borders(Borders::ALL))
             .style(Style::default().fg(Color::White))
             .highlight_style(Style::default().bg(Color::White).fg(Color::Black))
@@ -65,17 +65,36 @@ pub fn render<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>) {
     // -------------------------------------------------------
     //                    Individual Tabs
     // -------------------------------------------------------
-    match app.tab {
+    match app.state().tab {
         Tab::Agent => render_agent_tab(app, frame, chunks[1]),
         Tab::Systems => render_systems_tab(app, frame, chunks[1]),
         Tab::Fleet => render_fleet_tab(app, frame, chunks[1]),
     }
 }
 
-fn render_agent_tab<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, chunk: Rect) {
-    let agent = sqlx::query_as!(Agent, "SELECT * FROM agents LIMIT 1")
-        .fetch_one(get_global_db_pool().await)
-        .await?;
+fn render_agent_tab<B: Backend>(app: &App, frame: &mut Frame<'_, B>, chunk: Rect) {
+    let agent = &app.state().agent;
+    let value_style = Style::default().fg(Color::White);
+    let key_style = value_style.add_modifier(Modifier::BOLD);
+    let agent_info = Paragraph::new(vec![
+        Spans::from(vec![
+            Span::styled("Symbol", key_style),
+            Span::styled(": ", value_style),
+            Span::styled(&agent.symbol, value_style),
+        ]),
+        Spans::from(vec![
+            Span::styled("Headquarters", key_style),
+            Span::styled(": ", value_style),
+            Span::styled(&agent.headquarters, value_style),
+        ]),
+        Spans::from(vec![
+            Span::styled("Credits", key_style),
+            Span::styled(": ", value_style),
+            Span::styled(agent.credits.to_string(), value_style),
+        ]),
+    ]);
+
+    frame.render_widget(agent_info, chunk);
 }
-fn render_systems_tab<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, chunk: Rect) {}
-fn render_fleet_tab<B: Backend>(app: &mut App, frame: &mut Frame<'_, B>, chunk: Rect) {}
+fn render_systems_tab<B: Backend>(app: &App, frame: &mut Frame<'_, B>, chunk: Rect) {}
+fn render_fleet_tab<B: Backend>(app: &App, frame: &mut Frame<'_, B>, chunk: Rect) {}

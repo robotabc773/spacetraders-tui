@@ -1,5 +1,5 @@
 use crate::app::App;
-use crate::event::EventHandler;
+use crate::input::event::EventHandler;
 use crate::ui;
 use anyhow::Result;
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
@@ -47,7 +47,7 @@ impl<B: Backend> Tui<B> {
     ///
     /// # Errors
     /// Returns `Err` on terminal error
-    pub fn draw(&mut self, app: &mut App) -> Result<()> {
+    pub fn draw(&mut self, app: &App) -> Result<()> {
         self.terminal.draw(|frame| ui::render(app, frame))?;
         Ok(())
     }
