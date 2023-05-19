@@ -1,12 +1,11 @@
 use anyhow::Result;
-use log::debug;
+use log::error;
 use spacetraders_tui::app::App;
 use spacetraders_tui::db_util;
 use spacetraders_tui::input::event::{EventHandler, InputEvent};
 use spacetraders_tui::input::handler::handle_key_events;
 use spacetraders_tui::io::handler::IoHandler;
 use spacetraders_tui::io::IoEvent;
-use spacetraders_tui::st_util;
 use spacetraders_tui::tui::Tui;
 use std::io;
 use std::sync::Arc;
@@ -33,14 +32,17 @@ async fn main() -> Result<()> {
     let io_app_ref = app_ref.clone();
     tokio::spawn(async move {
         let mut handler = IoHandler::new(io_app_ref);
-        // Initilize internal state
-        handler.handle_io_event(IoEvent::UpdateAgent).await;
-
-        // Handle io events from the app
         while let Some(io_event) = sync_io_reciever.recv().await {
-            handler.handle_io_event(io_event).await;
+            if let Err(e) = handler.handle_io_event(io_event).await {
+                error!("Error handling io event: {e:#?}");
+            }
         }
     });
+
+    // Initialize internal state
+    let mut app = app_ref.lock().await;
+    app.update_agent_tab().await;
+    drop(app);
 
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(io::stderr());
@@ -53,11 +55,11 @@ async fn main() -> Result<()> {
     loop {
         let mut app = app_ref.lock().await;
         // Render the user interface.
-        tui.draw(&app)?;
+        tui.draw(&mut app)?;
         // Handle events.
         match tui.events.next().await {
             InputEvent::Tick => app.tick(),
-            InputEvent::Key(key_event) => handle_key_events(key_event, &mut app)?,
+            InputEvent::Key(key_event) => handle_key_events(key_event, &mut app).await?,
             // Event::Mouse(_) => {}
             // Event::Resize(_, _) => {}
             _ => {}

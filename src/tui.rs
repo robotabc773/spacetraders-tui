@@ -47,7 +47,7 @@ impl<B: Backend> Tui<B> {
     ///
     /// # Errors
     /// Returns `Err` on terminal error
-    pub fn draw(&mut self, app: &App) -> Result<()> {
+    pub fn draw(&mut self, app: &mut App) -> Result<()> {
         self.terminal.draw(|frame| ui::render(app, frame))?;
         Ok(())
     }

@@ -1,7 +1,8 @@
+use std::fmt::Display;
+
 use anyhow::Result;
 use spacedust::{
     apis::{
-        agents_api::get_my_agent,
         contracts_api::{get_contracts, GetContractsError},
         factions_api::{get_factions, GetFactionsError},
         fleet_api::{get_my_ships, GetMyShipsError},
@@ -12,10 +13,7 @@ use spacedust::{
     models::{Contract, Faction, Ship, System, Waypoint},
 };
 
-use crate::{
-    app::App,
-    config::{get_global_db_pool, CONFIGURATION},
-};
+use crate::config::CONFIGURATION;
 
 const MAX_PAGE_SIZE: i32 = 20;
 
@@ -85,3 +83,12 @@ impl_list!(
     /// Propogates any error from `get_systems`
     get_systems => pub async fn list_systems() -> Result<Vec<System>, Error<GetSystemsError>>
 );
+
+#[must_use]
+pub fn contract_type_to_string(contract_type: &spacedust::models::contract::RHashType) -> &str {
+    match contract_type {
+        spacedust::models::contract::RHashType::Shuttle => "Shuttle",
+        spacedust::models::contract::RHashType::Transport => "Transport",
+        spacedust::models::contract::RHashType::Procurement => "Procurement",
+    }
+}
