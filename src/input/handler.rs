@@ -36,8 +36,12 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> Result<()>
                 }
                 _ => {}
             },
-            Tab::Systems => {}
-            Tab::Fleet => {}
+            Tab::Systems => {
+                //TODO: Systems controls
+            }
+            Tab::Fleet => {
+                //TODO: Fleet controls
+            }
         },
     }
     Ok(())

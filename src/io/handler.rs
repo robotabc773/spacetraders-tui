@@ -8,6 +8,7 @@ use crate::{app::App, config::CONFIGURATION, st_util};
 
 use super::IoEvent;
 
+#[allow(clippy::module_name_repetitions)]
 pub struct IoHandler {
     app: Arc<Mutex<App>>,
 }
